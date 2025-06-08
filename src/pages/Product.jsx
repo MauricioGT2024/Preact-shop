@@ -3,50 +3,57 @@ import { CartContext } from "../context/CartContext.jsx";
 import { useSnackbar } from "../store/useSnackBar.js";
 
 export default function Product({ id }) {
-  const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [productState, setProductState] = useState({
+    data: null,
+    loading: true,
+    error: null,
+  });
   const { addToCart } = useContext(CartContext);
   const { showSnackbar } = useSnackbar();
 
   useEffect(() => {
+    if (!id) return;
+
     const fetchProduct = async () => {
       try {
-        setLoading(true);
-        const res = await fetch(`https://fakestoreapi.com/products/${id}`);
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        const data = await res.json();
-        setProduct(data);
-      } catch (err) {
-        setError(err);
-      } finally {
-        setLoading(false);
+        const response = await fetch(`https://fakestoreapi.com/products/${id}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setProductState({ data, loading: false, error: null });
+      } catch (error) {
+        setProductState((prev) => ({ ...prev, loading: false, error }));
       }
     };
 
-    if (id) fetchProduct();
+    fetchProduct();
   }, [id]);
 
-  const handleAdd = () => {
-    if (product) {
-      addToCart(product);
+  const handleAddToCart = () => {
+    if (productState.data) {
+      addToCart(productState.data);
       showSnackbar("Producto agregado al carrito ✅");
     }
   };
 
-  if (loading)
+  if (productState.loading) {
     return (
-      <p className="text-center text-gray-500 dark:text-gray-400">
+      <div role="status" className="text-center text-gray-500 dark:text-gray-400">
         Cargando...
-      </p>
-    );
-
-  if (error)
-    return (
-      <div className="text-center text-red-500 mt-8">
-        Error al cargar el producto: {error.message}
       </div>
     );
+  }
+
+  if (productState.error) {
+    return (
+      <div role="alert" className="text-center text-red-500 mt-8">
+        Error al cargar el producto: {productState.error.message}
+      </div>
+    );
+  }
+
+  const { data: product } = productState;
 
   return (
     <section className="max-w-4xl mx-auto p-6">
@@ -56,6 +63,7 @@ export default function Product({ id }) {
             src={product.image}
             alt={product.title}
             className="max-h-80 object-contain"
+            loading="lazy"
           />
         </div>
 
@@ -74,8 +82,9 @@ export default function Product({ id }) {
           </div>
 
           <button
-            onClick={handleAdd}
-            className="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded text-lg transition"
+            onClick={handleAddToCart}
+            className="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded text-lg transition-colors duration-200"
+            aria-label="Añadir al carrito"
           >
             Añadir al carrito
           </button>

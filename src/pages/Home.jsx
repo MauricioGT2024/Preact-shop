@@ -7,84 +7,104 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetch("https://fakestoreapi.com/products")
-      .then((res) => res.json())
-      .then((data) => {
-        setProducts(data);
-        setLoading(false);
-      });
-  }, []);
+  // Separar la lógica de fetching en funciones async/await
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch("https://fakestoreapi.com/products");
+      const data = await response.json();
+      setProducts(data);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch("https://fakestoreapi.com/products/categories");
+      const data = await response.json();
+      setCategories(data);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
+  };
 
   useEffect(() => {
-    fetch("https://fakestoreapi.com/products/categories")
-      .then((res) => res.json())
-      .then(setCategories);
+    fetchProducts();
+    fetchCategories();
   }, []);
 
-  const filtered =
-    selectedCategory === "all"
-      ? products
-      : products.filter((p) => p.category === selectedCategory);
+  const filtered = selectedCategory === "all"
+    ? products
+    : products.filter((p) => p.category === selectedCategory);
+
+  const CategoryButton = ({ category, isSelected, onClick }) => (
+    <button
+      onClick={onClick}
+      className={`
+        px-4 py-2 rounded-full text-sm transition-colors
+        ${isSelected 
+          ? "bg-blue-600 text-white"
+          : "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600"
+        }
+      `}
+    >
+      {category === "all" ? "Todos" : category}
+    </button>
+  );
+
+  const ProductCard = ({ product }) => (
+    <Link
+      href={`/product/${product.id}`}
+      className="border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm 
+                hover:shadow-lg transition bg-white dark:bg-gray-800 p-4 
+                flex flex-col group"
+    >
+      <img
+        src={product.image}
+        alt={product.title}
+        className="h-40 object-contain mb-4 group-hover:scale-105 transition-transform"
+        loading="lazy"
+      />
+      <h2 className="font-semibold text-md mb-2 line-clamp-2">
+        {product.title}
+      </h2>
+      <p className="text-green-600 font-bold mt-auto">
+        ${product.price.toFixed(2)}
+      </p>
+    </Link>
+  );
 
   return (
     <div className="max-w-7xl mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6">Productos</h1>
 
-      {/* Categorías */}
       <div className="mb-6 flex flex-wrap gap-3">
-        <button
+        <CategoryButton 
+          category="all"
+          isSelected={selectedCategory === "all"}
           onClick={() => setSelectedCategory("all")}
-          className={`px-4 py-2 rounded-full text-sm ${
-            selectedCategory === "all"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white"
-          }`}
-        >
-          Todos
-        </button>
+        />
         {categories.map((cat) => (
-          <button
+          <CategoryButton
             key={cat}
+            category={cat}
+            isSelected={selectedCategory === cat}
             onClick={() => setSelectedCategory(cat)}
-            className={`capitalize px-4 py-2 rounded-full text-sm ${
-              selectedCategory === cat
-                ? "bg-blue-600 text-white"
-                : "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white"
-            }`}
-          >
-            {cat}
-          </button>
+          />
         ))}
       </div>
 
-      {/* Cargando */}
       {loading && (
         <p className="text-center text-gray-500 dark:text-gray-400">
           Cargando productos...
         </p>
       )}
 
-      {/* Lista de productos */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filtered.map((product) => (
-          <Link
-            href={`/product/${product.id}`}
-            key={product.id}
-            className="border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-lg transition bg-white dark:bg-gray-800 p-4 flex flex-col"
-          >
-            <img
-              src={product.image}
-              alt={product.title}
-              className="h-40 object-contain mb-4"
-            />
-            <h2 className="font-semibold text-md mb-2 line-clamp-2">
-              {product.title}
-            </h2>
-            <p className="text-green-600 font-bold mt-auto">
-              ${product.price.toFixed(2)}
-            </p>
-          </Link>
+          <ProductCard key={product.id} product={product} />
         ))}
       </div>
     </div>
